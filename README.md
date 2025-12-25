@@ -28,16 +28,19 @@ This project demonstrates clean UI, controlled inputs, validation, and financial
 ---
 
 ## 📸 Screenshots
+### 🔹 Validation Error
+![EMI Validation Error](src/screenshots/emivalidation-error.png)
+
 
 ### 🔹 EMI Form
 
-![EMI Form](screenshots/emi-form.png)
+![EMI Form](src/screenshots/emi-form.png)
 
 ### 🔹 EMI Calculation Result
 
-![EMI Result](screenshots/emi-result.png)
+![EMI Result](src/screenshots/emi-result.png)
 
-### 🔹 Validation Error
+
 
 ![Validation Error](screenshots/emi-error.png)
 
