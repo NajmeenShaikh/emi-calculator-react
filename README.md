@@ -18,7 +18,8 @@ Loan customers need a quick way to estimate affordability before applying for a 
 - INR formatting using `Intl.NumberFormat`
 - Responsive Bootstrap UI
 - Semantic headings, labels, table headers and focus states
-- No `alert()`-based validation; errors stay in the application UI
+- Reset-to-default interaction
+- Automated tests for core financial calculations
 
 ## EMI formula
 
@@ -41,16 +42,16 @@ User Input
    ↓
 EmiForm
    ↓
-Validation
+Validation Utility
    ↓
-EMI Calculation Service
+EMI Calculation Utility
    ↓
 Loan Summary + Amortization Schedule
    ↓
 EmiResult + AmortizationTable
 ```
 
-Calculation logic is intentionally separated from UI components in `src/utils/emi.js`, making the financial rules easier to review and test.
+Calculation logic is intentionally separated from UI components in `src/utils/emi.js`, while validation rules live in `src/utils/validation.js`. This keeps financial rules easier to review and test.
 
 ## Project structure
 
@@ -62,7 +63,9 @@ src/
 │   └── EmiResult.jsx
 ├── utils/
 │   ├── currency.js
-│   └── emi.js
+│   ├── emi.js
+│   ├── emi.test.js
+│   └── validation.js
 ├── App.jsx
 ├── main.jsx
 └── index.css
@@ -76,6 +79,7 @@ src/
 - Bootstrap 5
 - HTML5 / CSS3
 - ESLint
+- Node.js built-in test runner
 
 ## Run locally
 
@@ -96,29 +100,45 @@ Lint:
 npm run lint
 ```
 
-## Quality and testing strategy
+Tests:
 
-The calculation layer is designed to be unit-tested independently from the UI. Recommended test cases include:
+```bash
+npm test
+```
 
-- Standard positive-interest loan
+## Automated test coverage
+
+The financial calculation layer has executable tests covering:
+
+- Standard positive-interest EMI
 - `0%` interest loan
-- Invalid/negative inputs
-- Very short tenure
-- Long tenure
-- Final amortization balance rounding
-- Principal + interest totals matching the repayment amount
+- Invalid financial inputs
+- Amortization reaching a zero closing balance
+- Principal + interest reconciliation
 
-Automated tests are **not claimed as implemented yet**; adding Vitest + React Testing Library is the next quality-hardening step.
+## Production considerations
 
-## Production roadmap
+This is an educational/portfolio implementation, not an authoritative banking repayment engine. A production banking application should obtain approved product rules from backend services, perform server-side validation, define rounding conventions with the financial domain team, and reconcile calculations with the institution's source-of-truth loan or ledger service.
 
-- Add Vitest and React Testing Library coverage
-- Add TypeScript domain models for loan calculations
-- Add API/service integration for bank-specific rate and product data
-- Add URL/shareable calculation state where appropriate
-- Add visual regression/accessibility checks in CI
-- Add authenticated loan-product recommendations in a real banking environment
+## Future enhancements
+
+- React Testing Library component tests
+- API-backed loan product configuration
+- Prepayment / part-payment simulation
+- Loan comparison mode
+- Principal-vs-interest visualization
+- Exportable repayment schedule
+- GitHub Actions CI
+- TypeScript migration for the UI layer
 
 ## Portfolio positioning
 
-This project demonstrates frontend engineering beyond a basic calculator: financial domain logic, edge-case handling, separation of concerns, accessibility, responsive UI and explainable repayment data.
+**Domain:** Banking / FinTech / Personal Finance  
+**Frontend:** React, JavaScript ES6+, Bootstrap, Vite  
+**Engineering:** Financial calculations, validation, accessibility, responsive design, testing, separation of concerns
+
+## Author
+
+**Najmeen Shaikh** — React UI Frontend Developer
+
+GitHub: https://github.com/NajmeenShaikh
