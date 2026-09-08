@@ -3,36 +3,39 @@ import EmiForm from "./components/EmiForm";
 import EmiResult from "./components/EmiResult";
 import AmortizationTable from "./components/AmortizationTable";
 import { calculateLoanSummary } from "./utils/emi";
+import { validateLoanInput } from "./utils/validation";
+
+const DEFAULTS = { loanAmount: "500000", interestRate: "8.5", tenure: "5" };
 
 function App() {
-  const [loanAmount, setLoanAmount] = useState("500000");
-  const [interestRate, setInterestRate] = useState("8.5");
-  const [tenure, setTenure] = useState("5");
+  const [loanAmount, setLoanAmount] = useState(DEFAULTS.loanAmount);
+  const [interestRate, setInterestRate] = useState(DEFAULTS.interestRate);
+  const [tenure, setTenure] = useState(DEFAULTS.tenure);
   const [errors, setErrors] = useState({});
   const [summary, setSummary] = useState(null);
 
-  const validation = useMemo(() => {
-    const next = {};
-    const amount = Number(loanAmount);
-    const rate = Number(interestRate);
-    const years = Number(tenure);
-
-    if (!loanAmount || !Number.isFinite(amount) || amount <= 0) next.loanAmount = "Enter a loan amount greater than ₹0.";
-    if (interestRate === "" || !Number.isFinite(rate) || rate < 0 || rate > 50) next.interestRate = "Enter an interest rate between 0% and 50%.";
-    if (!tenure || !Number.isFinite(years) || years <= 0 || years > 30) next.tenure = "Enter a tenure between 1 and 30 years.";
-    return next;
-  }, [loanAmount, interestRate, tenure]);
+  const input = useMemo(() => ({ loanAmount, interestRate, tenure }), [loanAmount, interestRate, tenure]);
 
   const calculate = (event) => {
     event.preventDefault();
-    if (Object.keys(validation).length) {
-      setErrors(validation);
+    const nextErrors = validateLoanInput(input);
+
+    if (Object.keys(nextErrors).length) {
+      setErrors(nextErrors);
       setSummary(null);
       return;
     }
 
     setErrors({});
     setSummary(calculateLoanSummary({ principal: loanAmount, annualRate: interestRate, tenureYears: tenure }));
+  };
+
+  const reset = () => {
+    setLoanAmount(DEFAULTS.loanAmount);
+    setInterestRate(DEFAULTS.interestRate);
+    setTenure(DEFAULTS.tenure);
+    setErrors({});
+    setSummary(null);
   };
 
   return (
@@ -55,6 +58,7 @@ function App() {
               setTenure={setTenure}
               errors={errors}
               onCalculate={calculate}
+              onReset={reset}
             />
           </div>
           <div className="col-lg-7">
