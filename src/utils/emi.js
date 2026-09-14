@@ -1,23 +1,39 @@
 export function calculateEmi({ principal, annualRate, tenureYears }) {
   const P = Number(principal);
   const annual = Number(annualRate);
-  const N = Number(tenureYears) * 12;
+  const years = Number(tenureYears);
+  const N = years * 12;
 
-  if (!Number.isFinite(P) || !Number.isFinite(annual) || !Number.isFinite(N) || P <= 0 || annual < 0 || N <= 0) {
+  if (
+    !Number.isFinite(P) ||
+    !Number.isFinite(annual) ||
+    !Number.isFinite(years) ||
+    !Number.isInteger(years) ||
+    P <= 0 ||
+    annual < 0 ||
+    years <= 0 ||
+    !Number.isSafeInteger(N)
+  ) {
     return null;
   }
 
   const monthlyRate = annual / 12 / 100;
   if (monthlyRate === 0) return P / N;
 
-  const factor = Math.pow(1 + monthlyRate, N);
-  return (P * monthlyRate * factor) / (factor - 1);
+  // Stable form of the standard reducing-balance EMI formula.
+  const discountFactor = Math.pow(1 + monthlyRate, -N);
+  const denominator = 1 - discountFactor;
+
+  if (!Number.isFinite(discountFactor) || denominator <= 0) return null;
+
+  return (P * monthlyRate) / denominator;
 }
 
 export function buildAmortizationSchedule({ principal, annualRate, tenureYears }) {
   const emi = calculateEmi({ principal, annualRate, tenureYears });
   const P = Number(principal);
-  const N = Number(tenureYears) * 12;
+  const years = Number(tenureYears);
+  const N = years * 12;
   const monthlyRate = Number(annualRate) / 12 / 100;
 
   if (emi === null) return [];
@@ -25,18 +41,24 @@ export function buildAmortizationSchedule({ principal, annualRate, tenureYears }
   let balance = P;
   const schedule = [];
 
-  for (let month = 1; month <= N && balance > 0.005; month += 1) {
-    const interest = monthlyRate === 0 ? 0 : balance * monthlyRate;
-    const principalPaid = Math.min(balance, emi - interest);
+  for (let month = 1; month <= N; month += 1) {
+    const openingBalance = balance;
+    const interest = monthlyRate === 0 ? 0 : openingBalance * monthlyRate;
+
+    // Adjust only the final principal component so floating-point drift
+    // cannot leave a residual balance after the contractual final payment.
+    const principalPaid = month === N
+      ? openingBalance
+      : Math.min(openingBalance, Math.max(0, emi - interest));
     const payment = principalPaid + interest;
-    const closingBalance = Math.max(0, balance - principalPaid);
+    const closingBalance = month === N ? 0 : Math.max(0, openingBalance - principalPaid);
 
     schedule.push({
       month,
       payment,
       principalPaid,
       interest,
-      openingBalance: balance,
+      openingBalance,
       closingBalance,
     });
 
