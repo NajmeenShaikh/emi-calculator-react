@@ -1,25 +1,28 @@
 # EMI Calculator — React Financial Application
 
-A production-minded EMI calculator for banking and personal-finance use cases, built with React, Vite and Bootstrap. The application combines financial calculation logic with accessible form validation, repayment analytics and a complete amortization schedule.
+A production-minded EMI calculator for banking and personal-finance use cases, built with React, Vite and Bootstrap. The application separates financial rules from UI concerns and demonstrates validation, accessibility, repayment analytics, automated testing and CI.
 
 ## Business use case
 
-Loan customers need a quick way to estimate affordability before applying for a personal, home or vehicle loan. This application demonstrates the type of frontend feature commonly embedded in banking and fintech journeys.
+Loan customers need a quick way to estimate affordability before applying for a personal, home or vehicle loan. This project demonstrates a realistic frontend feature that could sit inside a banking or fintech loan journey.
 
 ## Features
 
 - Loan amount, annual interest rate and tenure inputs
-- Client-side validation with accessible error messaging
-- Zero-interest edge-case handling
-- Monthly EMI calculation using the standard reducing-balance formula
-- Total principal, interest and repayment amount
-- Interest-share visualization
+- Accessible client-side validation and error messaging
+- Standard reducing-balance EMI calculation
+- Explicit `0%` interest handling
+- Stable EMI formula implementation for numeric edge cases
 - Month-by-month amortization schedule
+- Final-payment adjustment to eliminate floating-point residual balance
+- Principal, total interest and total repayment summary
+- Interest-share visualization
 - INR formatting using `Intl.NumberFormat`
 - Responsive Bootstrap UI
-- Semantic headings, labels, table headers and focus states
+- Semantic headings, labels, table headers and keyboard-friendly controls
 - Reset-to-default interaction
-- Automated tests for core financial calculations
+- Automated unit tests for calculation and validation rules
+- GitHub Actions CI for lint, tests and production build
 
 ## EMI formula
 
@@ -27,11 +30,15 @@ For a reducing-balance loan:
 
 `EMI = P × r × (1 + r)^n / ((1 + r)^n − 1)`
 
+The implementation uses the equivalent numerically stable form:
+
+`EMI = P × r / (1 − (1 + r)^−n)`
+
 Where:
 
 - `P` = principal loan amount
 - `r` = monthly interest rate (`annual rate / 12 / 100`)
-- `n` = total number of monthly payments (`years × 12`)
+- `n` = total number of monthly payments (`whole-number years × 12`)
 
 When the annual interest rate is `0%`, the application uses `P / n` to avoid division by zero.
 
@@ -44,14 +51,14 @@ EmiForm
    ↓
 Validation Utility
    ↓
-EMI Calculation Utility
+Financial Calculation Utility
    ↓
 Loan Summary + Amortization Schedule
    ↓
 EmiResult + AmortizationTable
 ```
 
-Calculation logic is intentionally separated from UI components in `src/utils/emi.js`, while validation rules live in `src/utils/validation.js`. This keeps financial rules easier to review and test.
+Financial logic is isolated in `src/utils/emi.js`, while input rules live in `src/utils/validation.js`. This keeps business rules independently testable and easier for another engineer to review.
 
 ## Project structure
 
@@ -65,7 +72,8 @@ src/
 │   ├── currency.js
 │   ├── emi.js
 │   ├── emi.test.js
-│   └── validation.js
+│   ├── validation.js
+│   └── validation.test.js
 ├── App.jsx
 ├── main.jsx
 └── index.css
@@ -80,62 +88,83 @@ src/
 - HTML5 / CSS3
 - ESLint
 - Node.js built-in test runner
+- GitHub Actions
 
-## Run locally
+## Engineering decisions
 
-```bash
-npm install
-npm run dev
-```
+### 1. Keep calculation logic outside React components
 
-Production build:
+The UI collects and displays data; the calculation utility owns the financial rules. This makes the core logic easy to unit test without rendering React components.
 
-```bash
-npm run build
-```
+### 2. Validate at the UI boundary and calculation boundary
 
-Lint:
+The form enforces product-facing constraints such as ₹1–₹10 crore, 0–50% annual interest and 1–30 whole years. The calculation utility independently rejects invalid numeric inputs so it does not rely on the UI being the only caller.
 
-```bash
-npm run lint
-```
+### 3. Avoid rounding during financial calculations
 
-Tests:
+Intermediate values remain full JavaScript numbers rather than being rounded for display. Currency formatting is applied only when values are rendered. A production banking implementation should agree with the backend/domain team on currency precision and monthly rounding rules.
+
+### 4. Reconcile the final amortization payment
+
+Floating-point arithmetic can leave a tiny residual balance. The schedule therefore forces the contractual final closing balance to zero and adjusts only the final principal component. This keeps the schedule deterministic without rounding every intermediate calculation.
+
+## Automated tests
+
+The test suite covers:
+
+- Standard positive-interest EMI
+- `0%` interest
+- Invalid principal/rate/tenure values
+- Numeric-string input normalization
+- Whole-number tenure requirement
+- Exact contractual schedule length
+- Final zero balance
+- Principal and interest component reconciliation
+- Loan summary reconciliation
+- Loan input validation and range checks
+
+Run locally:
 
 ```bash
 npm test
+npm run lint
+npm run build
 ```
 
-## Automated test coverage
+## CI
 
-The financial calculation layer has executable tests covering:
+GitHub Actions runs on pushes and pull requests targeting `main` and executes:
 
-- Standard positive-interest EMI
-- `0%` interest loan
-- Invalid financial inputs
-- Amortization reaching a zero closing balance
-- Principal + interest reconciliation
+1. `npm ci`
+2. `npm run lint`
+3. `npm test`
+4. `npm run build`
+
+The repository also keeps dependency versions managed through the committed npm lockfile so CI installs are reproducible.
 
 ## Production considerations
 
-This is an educational/portfolio implementation, not an authoritative banking repayment engine. A production banking application should obtain approved product rules from backend services, perform server-side validation, define rounding conventions with the financial domain team, and reconcile calculations with the institution's source-of-truth loan or ledger service.
+This is an educational/portfolio implementation, not an authoritative banking repayment engine. A production banking application should obtain approved loan-product rules from backend services, perform server-side validation, define rounding conventions with the financial domain team, handle taxes/fees/insurance where applicable, and reconcile calculations with the institution's source-of-truth loan or ledger service.
 
 ## Future enhancements
 
 - React Testing Library component tests
-- API-backed loan product configuration
+- API-backed loan-product configuration
 - Prepayment / part-payment simulation
 - Loan comparison mode
-- Principal-vs-interest visualization
+- Principal-vs-interest chart
 - Exportable repayment schedule
-- GitHub Actions CI
 - TypeScript migration for the UI layer
 
 ## Portfolio positioning
 
 **Domain:** Banking / FinTech / Personal Finance  
 **Frontend:** React, JavaScript ES6+, Bootstrap, Vite  
-**Engineering:** Financial calculations, validation, accessibility, responsive design, testing, separation of concerns
+**Engineering:** Financial calculations, validation, accessibility, responsive design, automated testing, CI, separation of concerns
+
+### Recruiter takeaway
+
+This project demonstrates that I can take a financial UI requirement and turn it into a maintainable frontend feature: **controlled inputs → validation → domain calculation → deterministic amortization → accessible presentation → automated tests → CI**.
 
 ## Author
 
