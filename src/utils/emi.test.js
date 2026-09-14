@@ -15,16 +15,30 @@ test("supports zero-interest loans", () => {
 test("rejects invalid financial inputs", () => {
   assert.equal(calculateEmi({ principal: 0, annualRate: 8, tenureYears: 5 }), null);
   assert.equal(calculateEmi({ principal: 100000, annualRate: -1, tenureYears: 5 }), null);
+  assert.equal(calculateEmi({ principal: 100000, annualRate: 8, tenureYears: 0 }), null);
+  assert.equal(calculateEmi({ principal: 100000, annualRate: 8, tenureYears: 1.5 }), null);
+  assert.equal(calculateEmi({ principal: "100000", annualRate: "8", tenureYears: "5" }) > 0, true);
 });
 
-test("amortization schedule reaches zero balance", () => {
+test("amortization schedule contains exactly the contractual number of payments", () => {
   const schedule = buildAmortizationSchedule({ principal: 100000, annualRate: 12, tenureYears: 1 });
   assert.equal(schedule.length, 12);
   assert.equal(schedule.at(-1).closingBalance, 0);
+});
+
+test("amortization schedule preserves principal and interest components", () => {
+  const schedule = buildAmortizationSchedule({ principal: 500000, annualRate: 8.5, tenureYears: 5 });
+  const principalPaid = schedule.reduce((sum, row) => sum + row.principalPaid, 0);
+  const interestPaid = schedule.reduce((sum, row) => sum + row.interest, 0);
+
+  assert.ok(Math.abs(principalPaid - 500000) < 0.01);
+  assert.ok(interestPaid > 0);
+  assert.ok(schedule.every((row) => row.payment >= row.principalPaid));
 });
 
 test("loan summary reconciles repayment components", () => {
   const summary = calculateLoanSummary({ principal: 100000, annualRate: 12, tenureYears: 1 });
   assert.ok(summary.totalAmount > 100000);
   assert.ok(Math.abs(summary.totalAmount - (100000 + summary.totalInterest)) < 0.01);
+  assert.equal(summary.schedule.length, 12);
 });
